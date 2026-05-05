@@ -38,7 +38,9 @@ def update_gist(radio_data):
 
 if __name__ == "__main__":
     latest_channels = [
-        {"id": "MBC_FM4U", "title": "MBC FM4U", "url": get_mbc_url("mfm")},
+        # ⭐ MBC FM4U 버튼에 '절대 끊기지 않는 글로벌 테스트 방송'을 연결했습니다.
+        {"id": "MBC_FM4U", "title": "TEST STREAM", "url": "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8"},
+        
         {"id": "MBC_STD", "title": "MBC 표준FM", "url": get_mbc_url("sfm")},
         {"id": "KBS_COOL", "title": "KBS Cool FM", "url": get_kbs_url("2fm")},
         {"id": "KBS_1R", "title": "KBS 1라디오", "url": get_kbs_url("1r")},
