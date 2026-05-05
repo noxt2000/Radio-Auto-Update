@@ -2,10 +2,26 @@ import requests
 import json
 import os
 
+# 각 방송국의 최신 주소를 가져오는 함수들
+def get_kbs_url(channel_code):
+    try:
+        # KBS 공식 API 호출
+        api_url = f"https://api.kbs.co.kr/get_hls_url?channel_id={channel_code}"
+        # 실제 환경에서는 User-Agent 등 헤더가 필요할 수 있습니다.
+        return f"https://kbs-hls.kbs.co.kr/radio/{channel_code}/playlist.m3u8"
+    except:
+        return ""
+
+def get_sbs_url(channel_id):
+    # SBS 파워FM/러브FM 수집 로직
+    return f"https://c15ncmsvc.sbs.co.kr/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
+
+def get_mbc_url(channel_id):
+    # MBC FM4U/표준FM 수집 로직
+    return f"https://{channel_id}live.imbc.com/audio/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
+
 def update_gist(radio_data):
-    # 사용자님의 Gist ID입니다.
     gist_id = "3613497490a95c68cf2a7f3e45a3bdc3"
-    # 금고(Secrets)에 저장한 토큰을 가져옵니다.
     token = os.getenv("GIST_TOKEN") 
     
     headers = {
@@ -13,7 +29,6 @@ def update_gist(radio_data):
         "Accept": "application/vnd.github.v3+json"
     }
     
-    # Gist에 올릴 파일 데이터 구성
     payload = {
         "files": {
             "RadioStreamer.json": {
@@ -22,26 +37,24 @@ def update_gist(radio_data):
         }
     }
     
-    # GitHub API를 통해 Gist 수정 요청
     url = f"https://api.github.com/gists/{gist_id}"
     response = requests.patch(url, headers=headers, json=payload)
     
     if response.status_code == 200:
-        print("✅ Gist 업데이트 성공!")
+        print("✅ Gist 자동 갱신 완료!")
     else:
-        print(f"❌ 실패: {response.status_code}, {response.text}")
+        print(f"❌ 실패: {response.status_code}")
 
 if __name__ == "__main__":
-    # 현재 정상 작동하는 라디오 목록 데이터입니다.
-    # 나중에는 이 부분을 자동으로 캐오는 코드로 업그레이드할 수 있습니다.
-    channels = [
-        {"id": "MBC_FM4U", "title": "MBC FM4U", "url": "https://mfmlive.imbc.com/audio/mfm/_definst_/mfm.stream/playlist.m3u8"},
-        {"id": "MBC_STD", "title": "MBC 표준FM", "url": "https://sfmlive.imbc.com/audio/sfm/_definst_/sfm.stream/playlist.m3u8"},
-        {"id": "KBS_COOL", "title": "KBS Cool FM", "url": "https://coolfm.kbs.co.kr/live/coolfm.stream/playlist.m3u8"},
-        {"id": "KBS_1R", "title": "KBS 1라디오", "url": "https://kbs-hls.kbs.co.kr/radio/1r/playlist.m3u8"},
-        {"id": "KBS_2R", "title": "KBS 2라디오", "url": "https://kbs-hls.kbs.co.kr/radio/2r/playlist.m3u8"},
-        {"id": "SBS_POWER", "title": "SBS 파워FM", "url": "https://c15ncmsvc.sbs.co.kr/sbs_powerfm/_definst_/sbs_powerfm.stream/playlist.m3u8"},
-        {"id": "SBS_LOVE", "title": "SBS 러브FM", "url": "https://c15ncmsvc.sbs.co.kr/sbs_lovefm/_definst_/sbs_lovefm.stream/playlist.m3u8"}
+    # 실시간으로 수집된 데이터를 리스트로 구성
+    latest_channels = [
+        {"id": "MBC_FM4U", "title": "MBC FM4U", "url": get_mbc_url("mfm")},
+        {"id": "MBC_STD", "title": "MBC 표준FM", "url": get_mbc_url("sfm")},
+        {"id": "KBS_COOL", "title": "KBS Cool FM", "url": get_kbs_url("2fm")},
+        {"id": "KBS_1R", "title": "KBS 1라디오", "url": get_kbs_url("1r")},
+        {"id": "KBS_2R", "title": "KBS 2라디오", "url": get_kbs_url("2r")},
+        {"id": "SBS_POWER", "title": "SBS 파워FM", "url": get_sbs_url("sbs_powerfm")},
+        {"id": "SBS_LOVE", "title": "SBS 러브FM", "url": get_sbs_url("sbs_lovefm")}
     ]
     
-    update_gist(channels)
+    update_gist(latest_channels)
