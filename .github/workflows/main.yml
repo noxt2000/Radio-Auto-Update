@@ -1,0 +1,22 @@
+name: Radio Auto Update
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # 한국 시간 매일 새벽 3시에 자동 실행
+  workflow_dispatch:      # 우리가 원할 때 수동으로 '실행' 버튼을 누를 수 있게 함
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: pip install requests
+      - name: Run Scraper
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }} # 금고에서 열쇠를 꺼내 파이썬에게 줌
+        run: python scraper.py
