@@ -2,21 +2,26 @@ import requests
 import json
 import os
 
+# 각 방송국의 실시간 스트리밍(HLS) 주소를 생성하는 함수들
 def get_kbs_url(channel_code):
+    # KBS 공식 HLS 경로 형식
     return f"https://kbs-hls.kbs.co.kr/radio/{channel_code}/playlist.m3u8"
 
 def get_sbs_url(channel_id):
+    # SBS 파워FM/러브FM 스트리밍 경로
     return f"https://c15ncmsvc.sbs.co.kr/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def get_mbc_url(channel_id):
+    # MBC FM4U/표준FM 스트리밍 경로
     return f"https://{channel_id}live.imbc.com/audio/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def update_gist(radio_data):
+    # 사용자님의 Gist ID
     gist_id = "3613497490a95c68cf2a7f3e45a3bdc3"
     token = os.getenv("GIST_TOKEN") 
     
     if not token:
-        print("❌ GIST_TOKEN Missing")
+        print("❌ 에러: GitHub Secrets에 GIST_TOKEN이 설정되지 않았습니다.")
         return
 
     headers = {
@@ -34,10 +39,16 @@ def update_gist(radio_data):
     
     url = f"https://api.github.com/gists/{gist_id}"
     response = requests.patch(url, headers=headers, json=payload)
-    print(f"✅ Gist Update Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        print(f"✅ Gist 업데이트 성공! (상태 코드: {response.status_code})")
+    else:
+        print(f"❌ Gist 업데이트 실패: {response.status_code}")
+        print(response.text)
 
 if __name__ == "__main__":
-    channels = [
+    # 앱(Android)의 버튼 ID와 일치하도록 구성된 데이터 리스트
+    latest_channels = [
         {"id": "MBC_FM4U", "title": "MBC FM4U", "url": get_mbc_url("mfm")},
         {"id": "MBC_STD", "title": "MBC 표준FM", "url": get_mbc_url("sfm")},
         {"id": "KBS_COOL", "title": "KBS Cool FM", "url": get_kbs_url("2fm")},
@@ -46,4 +57,5 @@ if __name__ == "__main__":
         {"id": "SBS_POWER", "title": "SBS 파워FM", "url": get_sbs_url("sbs_powerfm")},
         {"id": "SBS_LOVE", "title": "SBS 러브FM", "url": get_sbs_url("sbs_lovefm")}
     ]
-    update_gist(channels)
+    
+    update_gist(latest_channels)
