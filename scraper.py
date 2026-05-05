@@ -12,12 +12,11 @@ def get_mbc_url(channel_id):
     return f"https://{channel_id}live.imbc.com/audio/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def update_gist(radio_data):
-    # 사용자님의 Gist ID
     gist_id = "3613497490a95c68cf2a7f3e45a3bdc3"
     token = os.getenv("GIST_TOKEN") 
     
     if not token:
-        print("❌ GIST_TOKEN 설정이 되어있지 않습니다.")
+        print("❌ GIST_TOKEN Missing")
         return
 
     headers = {
@@ -35,7 +34,7 @@ def update_gist(radio_data):
     
     url = f"https://api.github.com/gists/{gist_id}"
     response = requests.patch(url, headers=headers, json=payload)
-    print(f"✅ Gist 상태: {response.status_code}")
+    print(f"✅ Gist Update Status: {response.status_code}")
 
 if __name__ == "__main__":
     channels = [
