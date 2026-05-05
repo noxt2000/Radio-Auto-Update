@@ -12,11 +12,12 @@ def get_mbc_url(channel_id):
     return f"https://{channel_id}live.imbc.com/audio/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def update_gist(radio_data):
+    # 사용자님의 Gist ID
     gist_id = "3613497490a95c68cf2a7f3e45a3bdc3"
     token = os.getenv("GIST_TOKEN") 
     
     if not token:
-        print("❌ GIST_TOKEN Missing")
+        print("❌ GIST_TOKEN 설정이 되어있지 않습니다.")
         return
 
     headers = {
@@ -34,10 +35,10 @@ def update_gist(radio_data):
     
     url = f"https://api.github.com/gists/{gist_id}"
     response = requests.patch(url, headers=headers, json=payload)
-    print(f"✅ Gist Update: {response.status_code}")
+    print(f"✅ Gist 상태: {response.status_code}")
 
 if __name__ == "__main__":
-    latest_channels = [
+    channels = [
         {"id": "MBC_FM4U", "title": "MBC FM4U", "url": get_mbc_url("mfm")},
         {"id": "MBC_STD", "title": "MBC 표준FM", "url": get_mbc_url("sfm")},
         {"id": "KBS_COOL", "title": "KBS Cool FM", "url": get_kbs_url("2fm")},
@@ -46,4 +47,4 @@ if __name__ == "__main__":
         {"id": "SBS_POWER", "title": "SBS 파워FM", "url": get_sbs_url("sbs_powerfm")},
         {"id": "SBS_LOVE", "title": "SBS 러브FM", "url": get_sbs_url("sbs_lovefm")}
     ]
-    update_gist(latest_channels)
+    update_gist(channels)
