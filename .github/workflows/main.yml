@@ -2,18 +2,20 @@ name: Radio Auto Update
 
 on:
   schedule:
-    - cron: '0 18 * * *' # 한국 시간 매일 새벽 3시에 자동 실행
-  workflow_dispatch:      # 수동 실행 버튼 활성화
+    - cron: '0 18 * * *' # 한국 시간 매일 새벽 3시 실행
+  workflow_dispatch:
+
+# 🌟 전역 환경 변수를 설정하여 Node.js 24 사용을 강제합니다.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # v3에서 v4로 업데이트
-      - uses: actions/checkout@v4 
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        # v4에서 v5로 업데이트
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
