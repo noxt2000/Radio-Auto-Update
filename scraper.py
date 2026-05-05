@@ -2,17 +2,13 @@ import requests
 import json
 import os
 
-# 각 방송국의 실시간 스트리밍 주소(HLS)를 구성하는 함수들
 def get_kbs_url(channel_code):
-    # KBS는 현재 고정된 HLS 경로 형식을 사용 중입니다.
     return f"https://kbs-hls.kbs.co.kr/radio/{channel_code}/playlist.m3u8"
 
 def get_sbs_url(channel_id):
-    # SBS 파워FM/러브FM 스트리밍 경로
     return f"https://c15ncmsvc.sbs.co.kr/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def get_mbc_url(channel_id):
-    # MBC FM4U/표준FM 스트리밍 경로
     return f"https://{channel_id}live.imbc.com/audio/{channel_id}/_definst_/{channel_id}.stream/playlist.m3u8"
 
 def update_gist(radio_data):
@@ -20,7 +16,7 @@ def update_gist(radio_data):
     token = os.getenv("GIST_TOKEN") 
     
     if not token:
-        print("❌ 에러: GIST_TOKEN이 설정되지 않았습니다.")
+        print("❌ GIST_TOKEN Missing")
         return
 
     headers = {
@@ -38,14 +34,9 @@ def update_gist(radio_data):
     
     url = f"https://api.github.com/gists/{gist_id}"
     response = requests.patch(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        print("✅ Gist 자동 갱신 성공!")
-    else:
-        print(f"❌ 실패: {response.status_code}, {response.text}")
+    print(f"✅ Gist Update: {response.status_code}")
 
 if __name__ == "__main__":
-    # 방송국별 최신 주소 수집
     latest_channels = [
         {"id": "MBC_FM4U", "title": "MBC FM4U", "url": get_mbc_url("mfm")},
         {"id": "MBC_STD", "title": "MBC 표준FM", "url": get_mbc_url("sfm")},
@@ -55,5 +46,4 @@ if __name__ == "__main__":
         {"id": "SBS_POWER", "title": "SBS 파워FM", "url": get_sbs_url("sbs_powerfm")},
         {"id": "SBS_LOVE", "title": "SBS 러브FM", "url": get_sbs_url("sbs_lovefm")}
     ]
-    
     update_gist(latest_channels)
