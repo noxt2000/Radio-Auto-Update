@@ -2,29 +2,23 @@ import requests
 import json
 import os
 
-# 1. 고정 설정값 (수정 금지)
+# 1. 고정 설정값
 GIST_ID = "3613497490a95c68cf2a7f3e45a3bdc3"
-# GitHub Secrets에 저장된 GH_TOKEN을 가져옵니다. 
-# 로컬 테스트 시에는 아래 "" 안에 실제 토큰을 넣으세요. 한글 금지!
-GH_TOKEN = os.environ.get("GH_TOKEN") or ""
+# 시스템에 등록된 GIST_TOKEN을 가져옵니다.
+GH_TOKEN = os.environ.get("GIST_TOKEN") 
 
-# 공통 헤더 (서버를 속이기 위한 용도)
+# 모든 방송사 공통 헤더 (서버 보안 우회용)
 COMMON_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 }
 
 def get_sbs_url(channel_id):
-    # channel_id는 'powerfm' 또는 'lovefm'이어야 함
-    api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
-    headers = {
-        # 1. SBS 서버를 속이기 위한 가짜 신분증
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        # 2. "나 SBS 홈페이지에서 클릭해서 왔어"라고 말해주는 증거
-        'Referer': 'https://play.sbs.co.kr/',
-    }
+    """SBS 주소 추출 (powerfm / lovefm)"""
     try:
+        api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
+        headers = COMMON_HEADERS.copy()
+        headers['Referer'] = 'https://play.sbs.co.kr/'
         res = requests.get(api_url, headers=headers, timeout=10)
-        # 만약 여기서 에러가 나면 빈칸("")을 돌려줍니다.
         return res.json().get('url', "")
     except:
         return ""
@@ -36,7 +30,6 @@ def get_mbc_url(type_id):
         headers = COMMON_HEADERS.copy()
         headers['Referer'] = 'https://mini.imbc.com/'
         res = requests.get(api_url, headers=headers, timeout=10)
-        # MBC는 데이터 구조가 가끔 변하므로 안전하게 가져옴
         data = res.json()
         return data.get('MediaUrl') or data.get('AACLiveURL') or ""
     except:
@@ -64,14 +57,14 @@ def main():
         {"id": "KBS_2R", "name": "KBS 2라디오", "url": get_kbs_url("22")}
     ]
 
-    # 주소 수집 결과 출력
+    # 주소 수집 결과 화면 출력
     for ch in radio_list:
         status = "✅ 성공" if ch["url"] else "❌ 실패"
         print(f"{ch['name']}: {status}")
 
-    # Gist 업데이트
+    # 토큰이 정상적으로 배달되었는지 확인
     if not GH_TOKEN:
-        print("❌ 에러: GH_TOKEN이 설정되지 않았습니다. GitHub Secrets를 확인하세요.")
+        print("❌ 에러: GIST_TOKEN을 찾을 수 없습니다. Secret 이름을 확인하세요.")
         return
 
     print("📡 Gist 업데이트 중...")
