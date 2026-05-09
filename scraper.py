@@ -14,12 +14,17 @@ COMMON_HEADERS = {
 }
 
 def get_sbs_url(channel_id):
-    """SBS 주소 추출 (powerfm / lovefm)"""
+    # channel_id는 'powerfm' 또는 'lovefm'이어야 함
+    api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
+    headers = {
+        # 1. SBS 서버를 속이기 위한 가짜 신분증
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        # 2. "나 SBS 홈페이지에서 클릭해서 왔어"라고 말해주는 증거
+        'Referer': 'https://play.sbs.co.kr/',
+    }
     try:
-        api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
-        headers = COMMON_HEADERS.copy()
-        headers['Referer'] = 'https://play.sbs.co.kr/'
         res = requests.get(api_url, headers=headers, timeout=10)
+        # 만약 여기서 에러가 나면 빈칸("")을 돌려줍니다.
         return res.json().get('url', "")
     except:
         return ""
