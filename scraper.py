@@ -13,7 +13,7 @@ def get_mbc_url(channel_id):
 
 def update_gist(radio_data):
     gist_id = "3613497490a95c68cf2a7f3e45a3bdc3"
-    token = ""GIST_TOKEN""
+    token = "GIST_TOKEN"
     
     if not token:
         print("❌ GIST_TOKEN이 없습니다.")
