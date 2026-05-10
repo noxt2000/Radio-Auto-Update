@@ -1,71 +1,97 @@
 import requests
 import json
 import os
+import time
 
-# 1. 설정값 확인
+# 1. 설정값 
 GIST_ID = "3613497490a95c68cf2a7f3e45a3bdc3"
 GH_TOKEN = os.environ.get("GIST_TOKEN") 
 
-# 방송국 서버를 완벽하게 속이기 위한 '진짜 브라우저' 헤더
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-}
+def get_radio_urls():
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    })
 
-def get_sbs_url(channel_id):
-    try:
-        api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
-        h = HEADERS.copy()
-        h['Referer'] = 'https://play.sbs.co.kr/'
-        res = requests.get(api_url, headers=h, timeout=10)
-        return res.json().get('url', "")
-    except: return ""
+    radio_results = []
 
-def get_mbc_url(type_id):
-    try:
-        api_url = f"https://control.imbc.com/v2/item/getItem?item=audio&channel={type_id}&agent=pc&protocol=hls"
-        h = HEADERS.copy()
-        h['Referer'] = 'https://mini.imbc.com/'
-        res = requests.get(api_url, headers=h, timeout=10)
-        return res.json().get('MediaUrl', "")
-    except: return ""
+    # --- 1. MBC 수집 로직 (최신 API) ---
+    print("📡 MBC 최신 서버 연결 중...")
+    for cid, name, internal_id in [("MBC_FM4U", "MBC FM4U", "mfm"), ("MBC_STD", "MBC 표준FM", "sfm")]:
+        try:
+            url = f"https://sminiplay.imbc.com/aacplay.ashx?agent=webapp&channel={internal_id}"
+            res = session.get(url, timeout=10)
+            addr = res.text.strip()
+            
+            if addr.startswith("http"):
+                radio_results.append({"id": cid, "name": name, "url": addr})
+                print(f"{name}: ✅ 성공")
+            else:
+                radio_results.append({"id": cid, "name": name, "url": ""})
+                print(f"{name}: ❌ 실패")
+        except Exception as e:
+            radio_results.append({"id": cid, "name": name, "url": ""})
+            print(f"{name}: ❌ 실패")
+        time.sleep(1)
 
-def get_kbs_url(channel_id):
-    try:
-        api_url = f"https://api.kbs.co.kr/p27/2plus/menu/get_streaming_url?channel_id={channel_id}&protocol=hls"
-        res = requests.get(api_url, headers=HEADERS, timeout=10)
-        return res.json().get('url', "")
-    except: return ""
+    # --- 2. KBS 수집 로직 (최신 API) ---
+    print("📡 KBS 최신 서버 연결 중...")
+    for cid, name, kid in [("KBS_COOL", "KBS CoolFM", "24"), ("KBS_1R", "KBS 1라디오", "21"), ("KBS_2R", "KBS 2라디오", "22")]:
+        try:
+            url = f"https://cfpwwwapi.kbs.co.kr/api/v1/landing/live/channel_code/{kid}"
+            res = session.get(url, timeout=10)
+            data = res.json()
+            addr = data.get('channel_item', [{}])[0].get('service_url', "")
+            
+            radio_results.append({"id": cid, "name": name, "url": addr})
+            print(f"{name}: {'✅ 성공' if addr else '❌ 실패'}")
+        except Exception as e:
+            radio_results.append({"id": cid, "name": name, "url": ""})
+            print(f"{name}: ❌ 실패")
+        time.sleep(1)
+
+    # --- 3. SBS 수집 로직 (마지막 퍼즐: 최신 텍스트 API 적용!) ---
+    print("📡 SBS 최신 서버 연결 중...")
+    for cid, name, pc_code, fm_code in [("SBS_POWER", "SBS 파워FM", "powerpc", "powerfm"), 
+                                        ("SBS_LOVE", "SBS 러브FM", "lovepc", "lovefm")]:
+        try:
+            # SBS도 MBC처럼 텍스트 주소만 뱉어내는 최신 API로 변경되었습니다.
+            url = f"https://apis.sbs.co.kr/play-api/1.0/livestream/{pc_code}/{fm_code}?protocol=hls&ssl=Y"
+            res = session.get(url, headers={'Referer': 'https://play.sbs.co.kr/'}, timeout=10)
+            addr = res.text.strip()
+            
+            # 주소가 http로 시작하면 정상!
+            if addr.startswith("http"):
+                radio_results.append({"id": cid, "name": name, "url": addr})
+                print(f"{name}: ✅ 성공")
+            else:
+                radio_results.append({"id": cid, "name": name, "url": ""})
+                print(f"{name}: ❌ 실패")
+        except Exception as e:
+            radio_results.append({"id": cid, "name": name, "url": ""})
+            print(f"{name}: ❌ 실패")
+        time.sleep(1)
+
+    return radio_results
 
 def main():
-    print("🚀 방송사별 최신 라디오 주소 수집 시작...")
-    radio_list = [
-        {"id": "SBS_POWER", "name": "SBS 파워FM", "url": get_sbs_url("powerfm")},
-        {"id": "SBS_LOVE", "name": "SBS 러브FM", "url": get_sbs_url("lovefm")},
-        {"id": "MBC_FM4U", "name": "MBC FM4U", "url": get_mbc_url("mbc")},
-        {"id": "MBC_STD", "name": "MBC 표준FM", "url": get_mbc_url("sfm")},
-        {"id": "KBS_COOL", "name": "KBS CoolFM", "url": get_kbs_url("24")},
-        {"id": "KBS_1R", "name": "KBS 1라디오", "url": get_kbs_url("21")},
-        {"id": "KBS_2R", "name": "KBS 2라디오", "url": get_kbs_url("22")}
-    ]
+    print("🚀 최신 API 엔진으로 라디오 주소 수집 시작...\n")
+    
+    radio_list = get_radio_urls()
 
-    for ch in radio_list:
-        print(f"{ch['name']}: {'✅ 성공' if ch['url'] else '❌ 실패'}")
-
-    if not GH_TOKEN:
-        print("❌ 에러: GIST_TOKEN이 없습니다.")
+    if not GH_TOKEN or GH_TOKEN.startswith("ghp_여기에"):
+        print("\n❌ 에러: GH_TOKEN 잊지 말고 꼭 넣어주세요!")
         return
 
-    print("📡 Gist 업데이트 중...")
+    print("\n📡 Gist 업데이트 중...")
     headers = {"Authorization": f"token {GH_TOKEN}", "Accept": "application/vnd.github.v3+json"}
     payload = {"files": {"RadioStreamer.json": {"content": json.dumps(radio_list, ensure_ascii=False, indent=2)}}}
     
     res = requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
     if res.status_code == 200:
-        print("🎉 업데이트 완료!")
+        print("🎉 모든 방송국(MBC, KBS, SBS) 퍼즐 완성! Gist 업데이트 성공!")
     else:
-        print(f"❌ 실패: {res.status_code} {res.text}")
+        print(f"❌ Gist 업데이트 실패: {res.status_code}")
 
 if __name__ == "__main__":
     main()
