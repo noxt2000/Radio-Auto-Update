@@ -6,47 +6,40 @@ import os
 GIST_ID = "3613497490a95c68cf2a7f3e45a3bdc3"
 GH_TOKEN = os.environ.get("GIST_TOKEN") 
 
-# 방송국 서버를 완벽하게 속이기 위한 헤더 세트
+# 방송국 서버를 완벽하게 속이기 위한 '진짜 브라우저' 헤더
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
     'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
 }
 
 def get_sbs_url(channel_id):
     try:
         api_url = f"https://apis.sbs.co.kr/play-api/get-streaming-url?channel={channel_id}&protocol=hls&device=pc"
-        sbs_headers = HEADERS.copy()
-        sbs_headers['Referer'] = 'https://play.sbs.co.kr/'
-        res = requests.get(api_url, headers=sbs_headers, timeout=10)
+        h = HEADERS.copy()
+        h['Referer'] = 'https://play.sbs.co.kr/'
+        res = requests.get(api_url, headers=h, timeout=10)
         return res.json().get('url', "")
-    except:
-        return ""
+    except: return ""
 
 def get_mbc_url(type_id):
     try:
         api_url = f"https://control.imbc.com/v2/item/getItem?item=audio&channel={type_id}&agent=pc&protocol=hls"
-        mbc_headers = HEADERS.copy()
-        mbc_headers['Referer'] = 'https://mini.imbc.com/'
-        res = requests.get(api_url, headers=mbc_headers, timeout=10)
-        data = res.json()
-        return data.get('MediaUrl') or data.get('AACLiveURL') or ""
-    except:
-        return ""
+        h = HEADERS.copy()
+        h['Referer'] = 'https://mini.imbc.com/'
+        res = requests.get(api_url, headers=h, timeout=10)
+        return res.json().get('MediaUrl', "")
+    except: return ""
 
 def get_kbs_url(channel_id):
     try:
         api_url = f"https://api.kbs.co.kr/p27/2plus/menu/get_streaming_url?channel_id={channel_id}&protocol=hls"
         res = requests.get(api_url, headers=HEADERS, timeout=10)
         return res.json().get('url', "")
-    except:
-        return ""
+    except: return ""
 
 def main():
     print("🚀 방송사별 최신 라디오 주소 수집 시작...")
-
     radio_list = [
         {"id": "SBS_POWER", "name": "SBS 파워FM", "url": get_sbs_url("powerfm")},
         {"id": "SBS_LOVE", "name": "SBS 러브FM", "url": get_sbs_url("lovefm")},
@@ -58,36 +51,21 @@ def main():
     ]
 
     for ch in radio_list:
-        status = "✅ 성공" if ch["url"] else "❌ 실패"
-        print(f"{ch['name']}: {status}")
+        print(f"{ch['name']}: {'✅ 성공' if ch['url'] else '❌ 실패'}")
 
-    # 401 방지용 체크
-    if not GH_TOKEN or len(GH_TOKEN) < 10:
-        print("❌ 에러: GIST_TOKEN이 설정되지 않았거나 너무 짧습니다.")
+    if not GH_TOKEN:
+        print("❌ 에러: GIST_TOKEN이 없습니다.")
         return
 
     print("📡 Gist 업데이트 중...")
-    headers = {
-        "Authorization": f"token {GH_TOKEN}",
-        "Accept": "application/vnd.github.v3+json",
-    }
+    headers = {"Authorization": f"token {GH_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    payload = {"files": {"RadioStreamer.json": {"content": json.dumps(radio_list, ensure_ascii=False, indent=2)}}}
     
-    payload = {
-        "files": {
-            "RadioStreamer.json": {
-                "content": json.dumps(radio_list, ensure_ascii=False, indent=2)
-            }
-        }
-    }
-
-    gist_api_url = f"https://api.github.com/gists/{GIST_ID}"
-    response = requests.patch(gist_api_url, headers=headers, json=payload)
-
-    if response.status_code == 200:
-        print("🎉 모든 주소가 Gist에 업데이트되었습니다!")
+    res = requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
+    if res.status_code == 200:
+        print("🎉 업데이트 완료!")
     else:
-        print(f"❌ Gist 업데이트 실패: {response.status_code}")
-        print(f"메시지: {response.text}")
+        print(f"❌ 실패: {res.status_code} {res.text}")
 
 if __name__ == "__main__":
     main()
